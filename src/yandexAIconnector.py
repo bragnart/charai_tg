@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Union
+from typing import List, Dict, Optional
 from yandex_cloud_ml_sdk import YCloudML
 from dotenv import load_dotenv
 import os
@@ -46,10 +46,45 @@ def get_answer(question: str, system_line: Optional[str] = None) -> str:
     except Exception as e:
         raise Exception(f"Ошибка получения ответа от YandexGPT: {str(e)}")
 
-if __name__ == '__main__':
-    question = 'Какой самый длинный остров в мире?'
+def get_reply(message_history: List[Dict[str, str]], system_line: Optional[str] = None) -> str:
+    """
+    Получает ответ от YandexGPT на историю сообщений.
+    
+    Args:
+        message_history (List[Dict[str, str]]): История сообщений, где каждое сообщение представляет собой словарь с ключами 'role' и 'text'
+        system_line (Optional[str]): Контекст от системы
+        
+    Returns:
+        str: Текст ответа модели
+        
+    Raises:
+        ValueError: Если история сообщений пуста или не соответствует формату
+    """
+    if not message_history or not isinstance(message_history, list):
+        raise ValueError("История сообщений должна быть непустым списком словарей")
+        
+    for message in message_history:
+        if not isinstance(message, dict) or 'role' not in message or 'text' not in message:
+            raise ValueError("Каждое сообщение должно быть словарем с ключами 'role' и 'text'")
+    
+    if system_line:
+        message_history.append({'role': 'system', 'text': system_line})
+    
     try:
-        answer = get_answer(question)
-        print(answer)
+        response = model.run(messages=message_history)
+        return response.alternatives[0].text
+    except Exception as e:
+        raise Exception(f"Ошибка получения ответа от YandexGPT: {str(e)}")
+
+if __name__ == '__main__':
+    history = [
+        {'role': 'user', 'text': 'Привет, как тебя зовут?'},
+        {'role': 'assistant', 'text': 'Я YandexGPT, приятно познакомиться!'},
+        {'role': 'user', 'text': 'Расскажи мне о том что такое электрический ток'}
+    ]
+    system_context = 'Твой ответ должен быть неформальным, отвечай как двачер, битард, тролль'
+    try:
+        reply = get_reply(history, system_line=system_context)
+        print(reply)
     except Exception as e:
         print(f"Error: {e}")
