@@ -56,14 +56,23 @@ dialogues = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    if chat_id not in dialogues:
-        dialogues[chat_id] = Dialogue(chat_id)
-        await dialogues[chat_id].send_message(context, "Привет! Это бот для общения с персонажами!")
-        await choice_character(update, context)
 
+    # Если диалог уже существует, сбрасываем его
+    if chat_id in dialogues:
+        del dialogues[chat_id]
+
+    # Создаем новый диалог
+    dialogues[chat_id] = Dialogue(chat_id)
+    await dialogues[chat_id].send_message(context, "Привет! Это бот для общения с персонажами!")
+    await choice_character(update, context)
+    
 async def choice_character(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    
+
+    # Убедимся, что диалог существует (на случай, если эта функция вызвана не через /start)
+    if chat_id not in dialogues:
+        dialogues[chat_id] = Dialogue(chat_id)
+
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             characters_config = json.load(f)
@@ -82,6 +91,8 @@ async def choice_character(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buttons=characters,
         action="choose_character"
     )
+
+
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
