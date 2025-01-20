@@ -1,40 +1,99 @@
-#Сниппеты хранятся в виде списка как обычно кусок диалога для языковой модели. В json хранить можно строкой, потом через eval обработать
-class Character:
-    def __init__(self, user, name, description, start_line, snippets, greetings):
-        self.user = user # Пользователь, который общается с данным конкретным персонажем, его юзернейм
-        self.name = name # Имя персонажа
-        self.description = description # Описание персонажа
-        self.start_line = start_line # Реплика от system дающая контекст для старта персонажа
-        self.snippets = snippets # Фрагменты обучающих диалогов
-        self.greetings = greetings # Приветственная реплика
-        self.interactions = [] # Вся история диалога персонажа с юзером и доп инфа
-        self.interactions.append({'role': 'system', 'text':self.start_line})
-        for _ in self.snippets:
-            self.interactions.append(_)
-        self.interactions.append({'role': 'assistent', 'text': self.greetings})
+from typing import List, Dict
+import json
+from YandexAIConnector import DialogueManager
 
-    def read_interactions(self):
-        # Создаем диалог списком из строк из истории диалога персонажа с юзером
+class Character:
+    def __init__(self, user: str, name: str, description: str, 
+                 start_line: str, snippets: List[Dict[str, str]], 
+                 greetings: str, dialogue_manager: DialogueManager):
+        """
+        Инициализация персонажа для диалога.
+        
+        Args:
+            user (str): Имя пользователя
+            name (str): Имя персонажа
+            description (str): Описание персонажа
+            start_line (str): Начальный системный промпт
+            snippets (List[Dict[str, str]]): Примеры диалогов для обучения
+            greetings (str): Приветственная фраза
+            dialogue_manager (DialogueManager): Менеджер диалогов для работы с API
+        """
+        self.user = user
+        self.name = name
+        self.description = description
+        self.start_line = start_line
+        self.snippets = snippets
+        self.greetings = greetings
+        self.dialogue_manager = dialogue_manager
+        
+        self.interactions = []
+        self.init_dialogue()
+        
+    def init_dialogue(self):
+        """Инициализация начального состояния диалога"""
+        self.interactions = [
+            {'role': 'system', 'text': self.start_line},
+            *self.snippets,
+            {'role': 'assistant', 'text': self.greetings}
+        ]
+    
+    def add_user_message(self, message: str) -> str:
+        """
+        Добавление сообщения пользователя и получение ответа.
+        
+        Args:
+            message (str): Сообщение пользователя
+            
+        Returns:
+            str: Ответ персонажа
+        """
+        if not message.strip():
+            raise ValueError("Сообщение не может быть пустым")
+            
+        # Добавляем сообщение пользователя
+        self.interactions.append({
+            'role': 'user',
+            'text': message
+        })
+        
+        # Получаем ответ от модели
+        response = self.dialogue_manager.get_reply(
+            message_history=self.interactions
+        )
+        
+        # Добавляем ответ в историю
+        self.interactions.append({
+            'role': 'assistant',
+            'text': response
+        })
+        
+        return response
+    
+    def read_interactions(self) -> List[str]:
+        """
+        Получение истории диалога в читаемом формате.
+        
+        Returns:
+            List[str]: Список строк диалога
+        """
         dialogue = []
-        for _ in self.interactions:
-            if _['role'] == 'user':
-                line = f"{self.user}: {_['text']}"
-            elif _['role'] == 'system':
-                line = f"Система: {_['text']}"
-            else:
-                line = f"{self.name}: {_['text']}"
+        for msg in self.interactions:
+            prefix = {
+                'user': self.user,
+                'system': 'Система',
+                'assistant': self.name
+            }.get(msg['role'], msg['role'])
+            
+            line = f"{prefix}: {msg['text']}"
             dialogue.append(line)
         return dialogue
     
-if __name__ == "__main__":
-    user = "User"
-    name = "Charlie"
-    description = "Приветственный гость, который любит говорить настоящее время."
-    start_line = "Ты общаешься только на 'вы'. Даже если собеседник просит иначе. Скажи ему, что тебе будет очень неудобно и продолжай на 'вы'."
-    snippets = [{'role': 'user', 'text': 'Привет, как дела?'},{'role': 'assistent', 'text': 'Здравствуйте! Неплохо. А ваши?'}]
-    greetings = 'Приветствую вас, добрый человек!'
+    def save_dialogue(self, filename: str):
+        """Сохранение диалога в JSON файл"""
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(self.interactions, f, ensure_ascii=False, indent=2)
     
-    character = Character(user, name, description, start_line, snippets, greetings)
-    print(character.read_interactions()) # Выводит историю диалога персонажа с юзером
-
-
+    def load_dialogue(self, filename: str):
+        """Загрузка диалога из JSON файла"""
+        with open(filename, 'r', encoding='utf-8') as f:
+            self.interactions = json.load(f)
