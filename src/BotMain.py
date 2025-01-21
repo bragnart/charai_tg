@@ -246,7 +246,7 @@ async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Завершение работы бота...")
-    await context.bot.updater.stop()
+    await context.bot.application.stop()
     await context.bot.stop()
 
 def main():
