@@ -6,6 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from YandexAIConnector import DialogueManager
 from CharLogic import Character
+from prompts import *
 
 load_dotenv()
 script_dir = os.path.dirname(os.path.abspath(__file__))
