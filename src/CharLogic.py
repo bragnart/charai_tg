@@ -1,6 +1,7 @@
 from typing import List, Dict
 import json
 from YandexAIConnector import DialogueManager
+from prompts import *
 
 class Character:
     def __init__(self, user: str, name: str, description: str, 
@@ -88,6 +89,18 @@ class Character:
             dialogue.append(line)
         return dialogue
     
+
+    def let_fight(self, enemy, instructions):
+        """Устраивает битву персонажа с указанным врагом"""
+        if self.name != "":
+            # Получаем инструкции и отправляем их в менеджер диалогов
+            msg = f"Начать бой с {enemy}.\nУказания для персонажа и какой инвентарь дан для боя: {instructions}"
+            self.interactions.append({'role':'user','text':msg})
+            fight_msg = self.dialogue_manager.get_reply(self.interactions,FIGHT_PROMPT)
+            self.interactions.append({'role':'system','text':fight_msg})
+            return fight_msg
+
+
     def save_dialogue(self, filename: str):
         """Сохранение диалога в JSON файл"""
         with open(filename, 'w', encoding='utf-8') as f:

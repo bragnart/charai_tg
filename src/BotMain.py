@@ -41,6 +41,7 @@ class Dialogue:
         except Exception as e:
             print(f"Произошла ошибка при создании персонажа: {str(e)}")
             return False
+        
 
     async def send_message(self, context: ContextTypes.DEFAULT_TYPE, text: str, buttons: list = None, action: str = None):
         """Отправляет сообщение с кнопками и запоминает текущую логику"""
