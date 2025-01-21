@@ -93,7 +93,6 @@ async def choice_character(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -133,7 +132,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=chat_id,
             text="Пожалуйста, сначала выберите персонажа с помощью команды /start"
         )
-
 
 
 async def conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -226,6 +224,31 @@ async def conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Диалог завершен. Используйте /start чтобы начать новый диалог с персонажем."
     )
 
+async def to_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /to_all для отправки сообщения всем пользователям"""
+    if 'BOT_TOKEN' not in os.environ:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="API ключ бота не найден!")
+        return
+
+    if not context.args:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Пожалуйста, укажите текст для отправки.")
+        return
+
+    message = ' '.join(context.args)
+
+    for chat_id in dialogues.keys():
+        await context.bot.send_message(chat_id=chat_id, text=message)
+
+async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /shutdown для завершения работы бота"""
+    if 'BOT_TOKEN' not in os.environ:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="API ключ бота не найден!")
+        return
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Завершение работы бота...")
+    await context.bot.updater.stop()
+    await context.bot.stop()
+
 def main():
     token = os.environ.get('BOT_TOKEN')
     if not token:
@@ -235,6 +258,8 @@ def main():
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("conversation", conversation))  # Новый обработчик
+    application.add_handler(CommandHandler("to_all", to_all))  # Новый обработчик
+    application.add_handler(CommandHandler("shutdown", shutdown))  # Новый обработчик
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
